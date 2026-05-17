@@ -37,9 +37,9 @@ apis:
     properties:
       - type: Documentation
         url: https://gateway.envoyproxy.io/docs/
-      - type: Getting Started
+      - type: GettingStarted
         url: https://gateway.envoyproxy.io/docs/tasks/quickstart/
-      - type: API Reference
+      - type: APIReference
         url: https://gateway.envoyproxy.io/docs/api/extension_types/
       - type: GitHub
         url: https://github.com/envoyproxy/gateway
@@ -48,7 +48,7 @@ common:
     url: https://gateway.envoyproxy.io/
   - type: Documentation
     url: https://gateway.envoyproxy.io/docs/
-  - type: GitHub Organization
+  - type: GitHubOrganization
     url: https://github.com/envoyproxy
   - type: Source Code
     url: https://github.com/envoyproxy/gateway

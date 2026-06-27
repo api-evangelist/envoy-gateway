@@ -52,11 +52,11 @@ common:
     url: https://github.com/envoyproxy
   - type: Source Code
     url: https://github.com/envoyproxy/gateway
-  - type: Releases
+  - type: ReleaseNotes
     url: https://github.com/envoyproxy/gateway/releases
   - type: Slack
     url: https://envoyproxy.slack.com/
-  - type: LLMsTxt
+  - type: LlmsText
     url: https://envoyproxy.slack.com/llms.txt
 maintainers:
   - FN: Kin Lane

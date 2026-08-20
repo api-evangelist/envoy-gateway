@@ -37,6 +37,12 @@ tags:
   - CNCF
   - Envoy
   - Kubernetes
+  - Open-Source
+tags_raw:
+  - API Gateway
+  - CNCF
+  - Envoy
+  - Kubernetes
   - Open Source
 url: >-
   https://raw.githubusercontent.com/api-evangelist/envoy-gateway/refs/heads/main/apis.yml

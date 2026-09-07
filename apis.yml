@@ -1,36 +1,42 @@
 aid: envoy-gateway
 name: Envoy Gateway
 description: >-
-  Envoy Gateway is a CNCF project providing a Kubernetes-native API
-  gateway built on Envoy Proxy, implementing the Kubernetes Gateway
-  API for simplified traffic management and ingress control. Envoy
-  Gateway exposes its functionality through Kubernetes Gateway API
-  resources and Custom Resource Definitions rather than a traditional
-  REST API.
+  Envoy Gateway is a CNCF project that manages Envoy Proxy as a standalone or
+  Kubernetes-based application gateway. It implements the Kubernetes Gateway API and
+  extends it with its own API group, gateway.envoyproxy.io, whose eight Custom Resource
+  Definitions cover infrastructure shape, client and backend traffic behaviour, security
+  policy, extensibility and direct xDS patching. There is no REST API and no hosted
+  endpoint: the machine-readable contract is the CRD structural schemas plus two
+  first-party gRPC services — an extension server hook and a remote infrastructure
+  provider — that Envoy Gateway calls out to. Apache-2.0 licensed and free, with a
+  published compatibility matrix giving every release a dated end of life, and Gateway
+  API v1.6.1 core and extended conformance certified by report in the standard body's own
+  repository.
 type: Index
 deliveryModel:
-  model: unknown
-  open_source: false
+  model: open-source
+  open_source: true
   commercial: false
   callable_host: false
-  label: Delivery model not determined — needs a product licence on record
-  confidence: low
+  label: Open-source software the operator installs and runs
+  confidence: high
   source:
-  - none
-  generated: '2026-08-28'
-  method: derived
+  - https://github.com/envoyproxy/gateway/blob/main/LICENSE
+  - https://gateway.envoyproxy.io/docs/install/install-helm/
+  generated: '2026-09-07'
+  method: searched
 accessModel:
-  pricing: freemium
-  onboarding: unknown
+  pricing: free
+  onboarding: self-service
   trial: false
   try_now: false
-  public: false
-  label: Freemium
-  confidence: medium
+  public: true
+  label: Free and open source (Apache-2.0)
+  confidence: high
   source:
   - plans
-  generated: '2026-07-22'
-  method: derived
+  generated: '2026-09-07'
+  method: searched
 image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/envoy-gateway.png
 tags:
   - API Gateway
@@ -38,31 +44,47 @@ tags:
   - Envoy
   - Kubernetes
   - Open-Source
+  - Gateway API
+  - Ingress
+  - Service Mesh
+  - Cloud Native
+  - gRPC
 tags_raw:
   - API Gateway
   - CNCF
   - Envoy
   - Kubernetes
   - Open Source
+  - Gateway API
+  - Ingress
+  - Service Mesh
+  - Cloud Native
+  - gRPC
 url: >-
   https://raw.githubusercontent.com/api-evangelist/envoy-gateway/refs/heads/main/apis.yml
 created: '2026-03-27'
-modified: '2026-04-28'
+modified: '2026-09-07'
 specificationVersion: '0.23'
+position: Producing
 apis:
   - aid: envoy-gateway:envoy-gateway
     name: Envoy Gateway
     description: >-
-      Envoy Gateway provides an expressive, extensible, role-oriented
-      API for Kubernetes gateway management built on Envoy Proxy.
-      Configuration is done through Kubernetes Gateway API resources
-      (Gateway, GatewayClass, HTTPRoute, GRPCRoute) and Envoy Gateway
-      CRDs (BackendTrafficPolicy, ClientTrafficPolicy, SecurityPolicy).
+      Envoy Gateway's configuration API is a set of Kubernetes Custom Resource Definitions
+      in the gateway.envoyproxy.io/v1alpha1 group — Backend, BackendTrafficPolicy,
+      ClientTrafficPolicy, EnvoyExtensionPolicy, EnvoyPatchPolicy, EnvoyProxy,
+      HTTPRouteFilter and SecurityPolicy — each carrying a full openAPIV3Schema, 4,080
+      schema properties in total. Every policy attaches to an upstream Gateway API object
+      through targetRefs. Requests go to the cluster's own Kubernetes API server, so the
+      base URL is templated on the operator's cluster rather than fixed by the project.
     humanURL: https://gateway.envoyproxy.io/
+    baseURL: https://{kubernetes-api-server}/apis/gateway.envoyproxy.io/v1alpha1
+    image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/envoy-gateway.png
     tags:
       - API Gateway
       - Kubernetes
       - CNCF
+      - Gateway API
     properties:
       - type: Documentation
         url: https://gateway.envoyproxy.io/docs/
@@ -70,27 +92,129 @@ apis:
         url: https://gateway.envoyproxy.io/docs/tasks/quickstart/
       - type: APIReference
         url: https://gateway.envoyproxy.io/docs/api/extension_types/
-      - type: GitHub
+      - type: GitHubRepository
         url: https://github.com/envoyproxy/gateway
+      - type: JSONSchema
+        url: json-schema/envoy-gateway-crds.yaml
+      - type: JSONSchema
+        url: json-schema/envoy-gateway-json-schema.yml
+      - type: Conformance
+        url: conformance/envoy-gateway-gateway-api-v1.6-conformance-report.yaml
+  - aid: envoy-gateway:envoy-gateway-extension-server
+    name: Envoy Gateway Extension Server
+    description: >-
+      A gRPC contract an operator implements to extend Envoy Gateway. Envoy Gateway is the
+      client: during xDS translation it calls the six EnvoyGatewayExtension RPCs —
+      PostRouteModify, PostVirtualHostModify, PostHTTPListenerModify, PostClusterModify,
+      PostEndpointsModify and PostTranslateModify — so the extension can modify generated
+      Envoy routes, virtual hosts, listeners, clusters, endpoints and the full translated
+      output before it reaches the proxies. Messages are typed against Envoy's own v3
+      config protos, pinned to buf.build/envoyproxy/envoy:v1.33.0.
+    humanURL: https://gateway.envoyproxy.io/docs/tasks/extensibility/extension-server/
+    baseURL: https://{extension-server-host}:{port}
+    image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/envoy-gateway.png
+    tags:
+      - gRPC
+      - Extensibility
+      - xDS
+    properties:
+      - type: Documentation
+        url: https://gateway.envoyproxy.io/docs/tasks/extensibility/extension-server/
+      - type: Protobuf
+        url: grpc/envoy-gateway-extension-service.proto
+      - type: Protobuf
+        url: grpc/envoy-gateway-extension-context.proto
+  - aid: envoy-gateway:envoy-gateway-remote-infrastructure
+    name: Envoy Gateway Remote Infrastructure Provider
+    description: >-
+      A gRPC contract added in v1.9.0 that lets an operator supply their own
+      infrastructure management strategy in place of Envoy Gateway creating Kubernetes
+      workloads itself. Four RPCs on EnvoyGatewayRemoteInfrastructureProvider reconcile
+      and tear down the proxy and the global rate limit data planes from an Infra
+      intermediate representation.
+    humanURL: https://gateway.envoyproxy.io/news/releases/notes/
+    baseURL: https://{remote-infra-provider-host}:{port}
+    image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/envoy-gateway.png
+    tags:
+      - gRPC
+      - Infrastructure
+    properties:
+      - type: Protobuf
+        url: grpc/envoy-gateway-remoteinfra-service.proto
 common:
-  - type: DomainSecurity
-    url: security/envoy-gateway-domain-security.yml
   - type: Website
     url: https://gateway.envoyproxy.io/
+  - type: DeveloperPortal
+    url: https://gateway.envoyproxy.io/docs/
   - type: Documentation
     url: https://gateway.envoyproxy.io/docs/
+  - type: APIReference
+    url: https://gateway.envoyproxy.io/docs/api/extension_types/
+  - type: GettingStarted
+    url: https://gateway.envoyproxy.io/docs/tasks/quickstart/
+  - type: Support
+    url: https://github.com/envoyproxy/gateway/issues
+  - type: Roadmap
+    url: https://gateway.envoyproxy.io/community/roadmap/
   - type: GitHubOrganization
     url: https://github.com/envoyproxy
-  - type: Source Code
+  - type: SourceCode
     url: https://github.com/envoyproxy/gateway
+  - type: License
+    url: https://github.com/envoyproxy/gateway/blob/main/LICENSE
   - type: ReleaseNotes
     url: https://github.com/envoyproxy/gateway/releases
   - type: Slack
-    url: https://envoyproxy.slack.com/
-  - type: LlmsText
-    url: https://envoyproxy.slack.com/llms.txt
+    url: https://www.envoyproxy.io/slack
+  - type: LLMsTxt
+    url: llms/envoy-gateway-llms.txt
+  - type: JSONSchema
+    url: json-schema/envoy-gateway-json-schema.yml
+  - type: Protobuf
+    url: grpc/envoy-gateway-grpc.yml
+  - type: Conformance
+    url: conformance/envoy-gateway-conformance.yml
+  - type: Packages
+    url: packages/envoy-gateway-packages.yml
+  - type: SDKs
+    url: packages/envoy-gateway-packages.yml
+  - type: CLI
+    url: cli/envoy-gateway-cli.yml
+  - type: Conventions
+    url: conventions/envoy-gateway-conventions.yml
+  - type: Idempotency
+    url: conventions/envoy-gateway-conventions.yml
+  - type: DataModel
+    url: data-model/envoy-gateway-data-model.yml
+  - type: Authentication
+    url: authentication/envoy-gateway-authentication.yml
+  - type: Lifecycle
+    url: lifecycle/envoy-gateway-lifecycle.yml
+  - type: Deprecation
+    url: lifecycle/envoy-gateway-lifecycle.yml
+  - type: ChangeLog
+    url: changelog/envoy-gateway-changelog.yml
+  - type: AgentSkill
+    url: skills/_index.yml
+  - type: Security
+    url: security/envoy-gateway-vulnerability-disclosure.yml
+  - type: VulnerabilityDisclosure
+    url: security/envoy-gateway-vulnerability-disclosure.yml
+  - type: DomainSecurity
+    url: security/envoy-gateway-domain-security.yml
+  - type: Plans
+    url: plans/envoy-gateway-plans-pricing.yml
+  - type: RateLimits
+    url: rate-limits/envoy-gateway-rate-limits.yml
+  - type: FinOps
+    url: finops/envoy-gateway-finops.yml
 maintainers:
   - FN: Kin Lane
     email: kin@apievangelist.com
 x-parent: envoy
 x-relationship: product
+x-enrichment:
+  date: '2026-09-07'
+  status: enriched
+  artifacts_added: 21
+  pass: local-v3

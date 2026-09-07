@@ -1,0 +1,112 @@
+specification: API Commons gRPC Index
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://github.com/envoyproxy/gateway/tree/main/proto — the Protobuf service
+  definitions published first-party in the envoyproxy/gateway repository, code-generated
+  with buf (buf.yaml / buf.gen.yaml at the repo root). Saved verbatim.
+description: >-
+  Envoy Gateway publishes two first-party gRPC contracts. They are the only wire-level
+  APIs the project defines itself: everything else a user touches is a Kubernetes custom
+  resource. Both are server-side extension points — the caller is Envoy Gateway and the
+  implementer is you — which is why they read as hooks rather than as a product API.
+buf:
+  configVersion: v2
+  deps:
+    - buf.build/envoyproxy/envoy:v1.33.0
+    - buf.build/protocolbuffers/wellknowntypes
+  lint: STANDARD
+  breaking: FILE
+  source: https://github.com/envoyproxy/gateway/blob/main/buf.yaml
+services:
+  - name: EnvoyGatewayExtension
+    package: envoygateway.extension
+    file: grpc/envoy-gateway-extension-service.proto
+    supportingFiles:
+      - grpc/envoy-gateway-extension-context.proto
+    rpcCount: 6
+    transport: gRPC over HTTP/2
+    role: >-
+      Envoy Gateway is the CLIENT. An operator runs an "extension server" implementing
+      this service and registers it in the EnvoyGateway config; Envoy Gateway then calls
+      the hooks during xDS translation so the extension can modify generated Envoy
+      configuration before it is sent to the proxies.
+    docs: https://gateway.envoyproxy.io/docs/tasks/extensibility/extension-server/
+    rpcs:
+      - name: PostRouteModify
+        request: PostRouteModifyRequest
+        response: PostRouteModifyResponse
+        summary: >-
+          Modify an xDS Route generated from an HTTPRoute that used extension resources as
+          externalRef filters, including its TypedPerFilterConfig.
+      - name: PostVirtualHostModify
+        request: PostVirtualHostModifyRequest
+        response: PostVirtualHostModifyResponse
+        summary: >-
+          Modify a generated VirtualHost, or insert entirely new Routes Envoy Gateway did
+          not generate. Always executed when an extension is loaded.
+      - name: PostHTTPListenerModify
+        request: PostHTTPListenerModifyRequest
+        response: PostHTTPListenerModifyResponse
+        summary: Modify a generated HTTP Listener before it is finalized.
+      - name: PostClusterModify
+        request: PostClusterModifyRequest
+        response: PostClusterModifyResponse
+        summary: >-
+          Modify clusters generated for custom backend types referenced in HTTPRoute or
+          GRPCRoute backendRefs, while Envoy Gateway retains cluster naming.
+      - name: PostEndpointsModify
+        request: PostEndpointsModifyRequest
+        response: PostEndpointsModifyResponse
+        summary: >-
+          Modify a ClusterLoadAssignment before it is sent over EDS, to set per-endpoint
+          metadata or apply endpoint overrides.
+      - name: PostTranslateModify
+        request: PostTranslateModifyRequest
+        response: PostTranslateModifyResponse
+        summary: >-
+          Inspect and replace the full lists of clusters, secrets, listeners and routes
+          after translation, or inject additional resources.
+  - name: EnvoyGatewayRemoteInfrastructureProvider
+    package: envoygateway.remoteinfra
+    file: grpc/envoy-gateway-remoteinfra-service.proto
+    rpcCount: 4
+    transport: gRPC over HTTP/2
+    role: >-
+      Envoy Gateway is the CLIENT. An operator implements this service to take over
+      provisioning of the proxy and rate-limit data plane, rather than letting Envoy
+      Gateway create Kubernetes Deployments and Services itself. Added in v1.9.0
+      ("Added a remote infrastructure provider").
+    rpcs:
+      - name: CreateOrUpdateProxyInfra
+        request: CreateOrUpdateProxyInfraRequest
+        response: CreateOrUpdateProxyInfraResponse
+        summary: Reconcile the proxy infrastructure described by the supplied Infra IR.
+      - name: DeleteProxyInfra
+        request: DeleteProxyInfraRequest
+        response: DeleteProxyInfraResponse
+        summary: Tear down the proxy infrastructure described by the supplied Infra IR.
+      - name: CreateOrUpdateRateLimitInfra
+        request: CreateOrUpdateRateLimitInfraRequest
+        response: CreateOrUpdateRateLimitInfraResponse
+        summary: Reconcile the global rate limit service infrastructure.
+      - name: DeleteRateLimitInfra
+        request: DeleteRateLimitInfraRequest
+        response: DeleteRateLimitInfraResponse
+        summary: Tear down the global rate limit service infrastructure.
+totalRpcs: 10
+x-evidence:
+  fetched: '2026-09-07'
+  urls:
+    - url: https://raw.githubusercontent.com/envoyproxy/gateway/main/proto/extension/service.proto
+      http_status: 200
+    - url: https://raw.githubusercontent.com/envoyproxy/gateway/main/proto/extension/context.proto
+      http_status: 200
+    - url: https://raw.githubusercontent.com/envoyproxy/gateway/main/proto/remoteinfra/service.proto
+      http_status: 200
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

@@ -1,0 +1,137 @@
+specification: API Commons ChangeLog
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://github.com/envoyproxy/gateway/tree/main/release-notes — one dated YAML file per
+  release, machine-readable, with a fixed set of categorised sections. Cross-checked
+  against the GitHub releases API and the rendered notes at
+  https://gateway.envoyproxy.io/news/releases/notes/.
+description: >-
+  Envoy Gateway keeps its changelog as structured YAML in the repository, not as prose on
+  a page. Every release has a `<version>.yaml` file with a date and seven fixed sections,
+  and unreleased changes accumulate as one-change-per-file fragments under
+  release-notes/current/<section>/. A consumer can diff two releases mechanically, which
+  is rarer than it should be.
+scheme: semver
+format: structured-yaml
+currentVersion: v1.9.1
+currentVersionDate: '2026-08-28'
+changelogUrl: https://gateway.envoyproxy.io/news/releases/notes/
+releasesUrl: https://github.com/envoyproxy/gateway/releases
+sourceOfTruth: https://github.com/envoyproxy/gateway/tree/main/release-notes
+sections:
+  - breaking changes
+  - security updates
+  - new features
+  - bug fixes
+  - performance improvements
+  - deprecations
+  - other changes
+unreleasedProcess: >-
+  Contributors add a fragment at release-notes/current/<section>/<pr-number>-<slug>.md,
+  one change per file, and the section directory determines the category. The project's
+  own PR-review Agent Skill (skills/envoy-gateway-pr-review.md) enforces this.
+entries:
+  - version: v1.9.1
+    date: '2026-08-28'
+    type: patch
+    breaking: true
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.9.1
+    counts:
+      breakingChanges: 4
+      securityUpdates: 6
+      newFeatures: 0
+      bugFixes: 8
+      performanceImprovements: 1
+      deprecations: 0
+    highlights:
+      - >-
+        Security: enabled AES-256-GCM for OAuth2/OIDC session cookies and disabled the
+        legacy AES-256-CBC decryption path, addressing the padding oracle in CVE-2026-47775.
+        Existing sessions are invalidated and users re-authenticate once after upgrade.
+      - >-
+        Security: fixed a confused-deputy / Pod Security Admission escape (GHSA-w42f-28h3-998w)
+        where a tenant-supplied EnvoyProxy SecurityContext replaced Envoy Gateway's hardened
+        default outright instead of merging on top of it.
+      - >-
+        Security: fixed OCI Wasm image pulls silently downgrading to plain HTTP, which let
+        an on-path attacker serve arbitrary Wasm code to the proxies.
+      - >-
+        Breaking: HTTP is no longer accepted as an OIDC issuer URL scheme, and OCI Wasm
+        registries must serve HTTPS unless explicitly configured insecure.
+      - >-
+        Breaking: watchable_subscribe_duration_seconds histogram buckets changed; dashboards
+        referencing the removed le boundaries need updating.
+  - version: v1.8.4
+    date: '2026-08-28'
+    type: patch
+    breaking: true
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.8.4
+    highlights:
+      - >-
+        The same security fixes backported to the v1.8 branch, patched the same day as
+        v1.9.1 — the project patches every supported non-EOL branch together.
+      - >-
+        Breaking: SDS reference secret `url` must now carry the `unix://` scheme; bare
+        filesystem paths are rejected.
+  - version: v1.9.0
+    date: '2026-08-14'
+    type: minor
+    breaking: true
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.9.0
+    counts:
+      breakingChanges: 17
+      securityUpdates: 3
+      newFeatures: 36
+    highlights:
+      - >-
+        Added a remote infrastructure provider, letting operators supply their own
+        infrastructure management strategy over gRPC — the contract in
+        grpc/envoy-gateway-remoteinfra-service.proto.
+      - >-
+        Added a `csrf` field to SecurityPolicy for native Cross-Site Request Forgery
+        protection with gradual rollout via shadowFraction.
+      - Added support for CEL expressions in SecurityPolicy authorization rules.
+      - >-
+        Extension server policies can now target HTTPRoutes, GRPCRoutes and their rules
+        via sectionName, and can cross namespaces using ReferenceGrant.
+      - >-
+        Security: fixed an xDS server authentication bypass in GatewayNamespaceMode by
+        adding a unary interceptor and validating SotW requests.
+      - >-
+        Breaking: TCPRoute/UDPRoute now reconcile via gateway.networking.k8s.io/v1 and the
+        Gateway API CRDs must be upgraded to v1.6 with this release, or TCP/UDP routes are
+        silently skipped.
+      - >-
+        Breaking: Lua EnvoyExtensionPolicies are disabled by default; `disableLua` is
+        deprecated in favour of `enableLua`.
+  - version: v1.8.3
+    date: '2026-07-22'
+    type: patch
+    breaking: true
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.8.3
+    highlights:
+      - >-
+        Breaking: EnvoyExtensionPolicy Lua source moved from per-route LuaPerRoute
+        overrides to listener-level filters, changing generated xDS filter names.
+  - version: v1.7.5
+    date: '2026-07-08'
+    type: patch
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.7.5
+    note: Final patch on the v1.7 branch, which reached end of life on 2026-08-05.
+observations:
+  - >-
+    Patch releases carry breaking changes. v1.9.1, v1.8.4 and v1.8.3 each list breaking
+    changes in a patch, mostly because a security fix tightened a previously permissive
+    input. An operator cannot treat an Envoy Gateway patch bump as unconditionally safe;
+    the release notes must be read.
+  - >-
+    Almost every breaking change is scoped to EnvoyPatchPolicy and extension-server users,
+    because those two features reach into generated xDS by name. That is the documented
+    cost of the escape hatch, and the notes are unusually explicit about it.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

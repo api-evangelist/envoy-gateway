@@ -1,0 +1,54 @@
+specification: API Commons MCP
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  Search of the envoyproxy/gateway repository, the gateway.envoyproxy.io documentation and
+  the npm registry on 2026-09-07, plus the sibling Envoy AI Gateway documentation at
+  https://aigateway.envoyproxy.io/docs/0.5/capabilities/mcp/.
+description: >-
+  Envoy Gateway ships no MCP server. This file records that finding and, more usefully,
+  records where the MCP work in the Envoy ecosystem actually lives, so the absence is not
+  mistaken for the ecosystem having none.
+deployment:
+  mode: none
+  auth: none
+  verified: searched
+status: none
+tools: []
+findings:
+  - >-
+    MCP in the Envoy ecosystem belongs to Envoy AI Gateway (aigateway.envoyproxy.io,
+    repository envoyproxy/ai-gateway), a separate CNCF project built on top of Envoy
+    Gateway. Envoy AI Gateway v0.4 introduced an MCP Gateway with OAuth and server
+    multiplexing, and Envoy Proxy itself now carries an `mcp_filter` HTTP filter. Neither
+    is published by Envoy Gateway, and crediting them here would attribute a sibling
+    project's work to this one.
+  - >-
+    Both of those are also MCP *infrastructure* — a gateway that proxies MCP traffic on
+    behalf of other people's servers — rather than an MCP server exposing Envoy Gateway's
+    own functionality to an agent. Even under the sibling project they would not make
+    Envoy Gateway itself agent-callable.
+  - >-
+    A third-party npm package, @saptak/egmcp-server (repository saptak/eg-mcp-server,
+    v0.3.1), does expose Envoy Gateway operations over MCP. It is community work, is not
+    endorsed or distributed by the project, and is recorded in
+    packages/envoy-gateway-packages.yml as official:false.
+  - >-
+    No candidate tool list was derived. The pipeline derives candidates from OpenAPI
+    operations; Envoy Gateway publishes no OpenAPI, so there are no operationIds to bind
+    tools to and any tool list written here would be invented.
+notes:
+  - >-
+    No MCPServer pointer is wired into apis.yml. The pointer asserts that a server exists;
+    for this provider none does, and a candidate stub would read as an agent surface that
+    is not there.
+  - >-
+    An agent that needs to drive Envoy Gateway today does it the way any other Kubernetes
+    client does — through the Kubernetes API server against the CRD schemas catalogued in
+    json-schema/envoy-gateway-json-schema.yml, or through egctl (cli/envoy-gateway-cli.yml).
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

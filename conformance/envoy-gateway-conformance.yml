@@ -1,0 +1,236 @@
+specification: API Commons Conformance
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  The Gateway API conformance reports Envoy Gateway itself submitted to the upstream
+  project at kubernetes-sigs/gateway-api/conformance/reports/v1.6/envoy-gateway/ (saved
+  verbatim alongside this file), plus the published CRD schemas in
+  json-schema/envoy-gateway-crds.yaml and the v1.9.x release notes.
+description: >-
+  Envoy Gateway's domain standard is the Kubernetes Gateway API, and its conformance is
+  not a marketing claim — it is a signed report the project generated from the upstream
+  test suite and merged into the standard body's own repository. That is the strongest
+  form of conformance evidence available anywhere in this catalogue: a buyer who already
+  speaks Gateway API can move an existing HTTPRoute manifest onto Envoy Gateway without a
+  bespoke connector, and the report says exactly which extended features would and would
+  not survive the move.
+domainStandard:
+  id: gateway-api
+  name: Kubernetes Gateway API
+  body: Kubernetes SIG-Network
+  market: Kubernetes ingress and L4/L7 gateway
+  conforms: true
+  version: v1.6.1
+  channel: experimental
+  grade: certified-by-report
+  evidence: >-
+    https://github.com/kubernetes-sigs/gateway-api/tree/main/conformance/reports/v1.6/envoy-gateway
+  signature: >-
+    The contract declares the standard about itself: every Envoy Gateway policy CRD
+    attaches to a Gateway API object through a `targetRefs` field typed to
+    gateway.networking.k8s.io kinds (Gateway, HTTPRoute, GRPCRoute, TCPRoute, UDPRoute,
+    TLSRoute, ListenerSet), and HTTPRouteFilter exists solely to be referenced from a
+    Gateway API HTTPRoute rule via extensionRef. The API group gateway.envoyproxy.io is an
+    extension of the standard, not an alternative to it.
+  reports:
+    - file: conformance/envoy-gateway-gateway-api-v1.6-conformance-report.yaml
+      mode: default
+      implementationVersion: v1.9.0
+      gatewayAPIVersion: v1.6.1
+      channel: experimental
+      submitted: '2026-08-18'
+      profiles:
+        - name: GATEWAY-HTTP
+          core: {passed: 37, failed: 0, skipped: 0, result: success}
+          extended: {passed: 55, failed: 0, skipped: 0, result: success}
+        - name: GATEWAY-TLS
+          core: {passed: 20, failed: 0, skipped: 0, result: success}
+          extended: {passed: 14, failed: 0, skipped: 0, result: success}
+        - name: GATEWAY-GRPC
+          core: {passed: 15, failed: 0, skipped: 0, result: success}
+          extended: {passed: 9, failed: 0, skipped: 0, result: success}
+      totals: {corePassed: 72, extendedPassed: 78, failed: 0, provisionalPassed: 25}
+    - file: conformance/envoy-gateway-gateway-api-v1.6-namespace-mode-conformance-report.yaml
+      mode: gateway-namespace-mode
+      implementationVersion: v1.9.0
+      gatewayAPIVersion: v1.6.1
+      channel: experimental
+      submitted: '2026-08-18'
+      totals: {corePassed: 72, extendedPassed: 81, failed: 0, provisionalPassed: 26}
+      note: >-
+        The multi-tenant deployment mode, in which each Gateway's proxy runs in the
+        Gateway's own namespace. It passes three extended tests the default mode does not,
+        so the two reports are not redundant.
+  unsupportedFeatures:
+    - id: GatewayHTTPSListenerDetectMisdirectedRequests
+      note: >-
+        Reported unsupported in every profile of both reports. Envoy Gateway does not
+        detect and reject a request whose SNI and Host disagree on an HTTPS listener.
+    - id: GatewayInfrastructurePropagation
+      note: >-
+        Reported unsupported in every profile of both reports. Labels and annotations set
+        on Gateway.spec.infrastructure are not propagated to the generated resources.
+  honesty: >-
+    Both unsupported features are declared by the project in its own report rather than
+    omitted. Zero tests failed and zero were skipped across both reports.
+conformance:
+  - id: gateway-api
+    name: Kubernetes Gateway API v1.6.1
+    conforms: true
+    evidence: https://github.com/kubernetes-sigs/gateway-api/tree/main/conformance/reports/v1.6/envoy-gateway
+    note: >-
+      Core and extended profiles pass for HTTP, TLS and gRPC. See domainStandard above.
+  - id: xds
+    name: Envoy xDS (v3 discovery APIs)
+    conforms: true
+    evidence: https://gateway.envoyproxy.io/docs/tasks/extensibility/extension-server/
+    note: >-
+      Envoy Gateway is an xDS control plane. It serves CDS/EDS/LDS/RDS/SDS to the managed
+      proxies, and its own extension contract
+      (grpc/envoy-gateway-extension-service.proto) is typed directly against
+      envoy.config.cluster.v3, envoy.config.listener.v3, envoy.config.route.v3 and
+      envoy.extensions.transport_sockets.tls.v3 messages, pinned to
+      buf.build/envoyproxy/envoy:v1.33.0.
+  - id: grpc
+    name: gRPC
+    conforms: true
+    evidence: grpc/envoy-gateway-grpc.yml
+    note: >-
+      Two first-party gRPC services (10 RPCs), plus GRPCRoute support certified in the
+      GATEWAY-GRPC conformance profile.
+  - id: protobuf
+    name: Protocol Buffers 3
+    conforms: true
+    evidence: https://github.com/envoyproxy/gateway/blob/main/buf.yaml
+    note: >-
+      buf v2 configuration with STANDARD lint rules and FILE-level breaking-change
+      detection enforced in CI.
+  - id: oidc
+    name: OpenID Connect
+    conforms: true
+    evidence: >-
+      SecurityPolicy CRD, spec.oidc — json-schema/envoy-gateway-crds.yaml
+    note: >-
+      SecurityPolicy implements the OIDC authorization-code flow with PKCE, discovery via
+      the issuer's well-known document, refresh tokens, logout and, since v1.9.0,
+      forwardIDToken. v1.9.1 removed HTTP as an accepted issuer scheme.
+  - id: oauth2
+    name: OAuth 2.0
+    conforms: true
+    evidence: SecurityPolicy CRD, spec.oidc / OAuth2 filter configuration
+    note: >-
+      Backed by Envoy's oauth2 HTTP filter. v1.9.1 moved session cookies to AES-256-GCM.
+  - id: jwt
+    name: JSON Web Token (RFC 7519) and JWKS (RFC 7517)
+    conforms: true
+    evidence: SecurityPolicy CRD, spec.jwt.providers[].remoteJWKS
+    note: >-
+      JWT validation against remote or local JWKS, with claim-to-header extraction, per
+      provider audiences and issuers, failedRefetchDuration and failOpen.
+  - id: cors
+    name: CORS (Fetch / W3C Cross-Origin Resource Sharing)
+    conforms: true
+    evidence: SecurityPolicy CRD, spec.cors
+  - id: mutual-tls
+    name: Mutual TLS
+    conforms: true
+    evidence: ClientTrafficPolicy spec.tls.clientValidation, BackendTLSPolicy
+    note: >-
+      Downstream client certificate validation with CA refs, optional insecure fallback and
+      (since v1.9.0) allowExpiredCertificate; upstream client certificates via Backend TLS.
+  - id: json-patch
+    name: JSON Patch (RFC 6902)
+    conforms: true
+    evidence: EnvoyPatchPolicy CRD, spec.jsonPatches[].operation
+    note: >-
+      EnvoyPatchPolicy applies RFC 6902 operations to generated xDS resources; the CRD also
+      supports JSON merge semantics for value replacement.
+  - id: opentelemetry
+    name: OpenTelemetry
+    conforms: true
+    evidence: EnvoyProxy CRD, spec.telemetry.{accessLog,metrics,tracing}
+    note: >-
+      OTLP sinks for access logs, metrics and traces are first-class fields on EnvoyProxy;
+      Zipkin and Datadog tracing backends are also modelled.
+  - id: prometheus
+    name: Prometheus exposition format
+    conforms: true
+    evidence: EnvoyProxy CRD, spec.telemetry.metrics.prometheus
+    note: >-
+      Control plane and proxy metrics are exposed for Prometheus scrape; v1.9.0 added an
+      xdsNACKTotal metric.
+  - id: proxy-protocol
+    name: HAProxy PROXY protocol
+    conforms: true
+    evidence: ClientTrafficPolicy spec.enableProxyProtocol and Backend proxyProtocol settings
+  - id: proxy-wasm
+    name: Proxy-Wasm ABI
+    conforms: true
+    evidence: EnvoyExtensionPolicy CRD, spec.wasm
+    note: >-
+      Wasm modules sourced over HTTP or from an OCI image registry. v1.9.1 removed the
+      implicit plain-HTTP fallback for OCI pulls.
+  - id: orca
+    name: ORCA — Open Request Cost Aggregation (xds.service.orca.v3)
+    conforms: true
+    evidence: BackendTrafficPolicy spec.loadBalancer.backendUtilization
+    note: >-
+      In-band ORCA metrics in response headers and trailers, plus out-of-band reporting
+      added in v1.9.0 via the OpenRcaService server-streaming RPC.
+  - id: cel
+    name: Common Expression Language
+    conforms: true
+    evidence: >-
+      CEL validation rules throughout the CRD schemas, and SecurityPolicy authorization
+      rules with CEL expressions added in v1.9.0.
+  - id: http3
+    name: HTTP/3 (QUIC)
+    conforms: true
+    evidence: ClientTrafficPolicy spec.http3
+  - id: rfc9457
+    name: RFC 9457 Problem Details for HTTP APIs
+    conforms: false
+    evidence: >-
+      No application/problem+json media type appears anywhere in
+      json-schema/envoy-gateway-crds.yaml or the gRPC contracts.
+    note: >-
+      Not applicable rather than missing. Envoy Gateway has no HTTP API of its own to
+      return problem documents from; errors surface as Kubernetes status conditions on the
+      custom resources and as gRPC status codes on the extension hooks.
+  - id: idempotency
+    name: Idempotency-Key header
+    conforms: false
+    evidence: No Idempotency-Key header appears in any published contract.
+    note: >-
+      Not applicable. Replay safety comes from Kubernetes declarative apply rather than a
+      request header — see conventions/envoy-gateway-conventions.yml.
+  - id: openapi
+    name: OpenAPI
+    conforms: false
+    evidence: >-
+      https://gateway.envoyproxy.io/openapi.json returned 404 on 2026-09-07, as did every
+      other probed spec path on every host.
+    note: >-
+      Honest absence, not a gap. There is no REST API to describe. The machine-readable
+      contract is the CRD structural schemas and the two .proto files, both of which are
+      captured in this repository.
+compliance:
+  certifications: []
+  note: >-
+    Envoy Gateway publishes no SOC 2, ISO 27001, PCI or FedRAMP attestation and no trust
+    centre, and should not be expected to: it is Apache-2.0 software an operator installs
+    in their own cluster, not a service processing anyone's data. No Compliance pointer is
+    wired into apis.yml, because there is no compliance programme to point at. Its
+    governance credential is CNCF project status under the Linux Foundation, with a
+    published GOVERNANCE.md and steering committee.
+  governance:
+    foundation: Cloud Native Computing Foundation
+    license: Apache-2.0
+    governanceDoc: https://github.com/envoyproxy/gateway/blob/main/GOVERNANCE.md
+    codeOfConduct: https://github.com/envoyproxy/gateway/blob/main/CODE_OF_CONDUCT.md
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

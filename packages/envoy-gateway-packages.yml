@@ -1,0 +1,137 @@
+specification: API Commons Packages
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  Registry metadata endpoints queried unauthenticated on 2026-09-07 — proxy.golang.org
+  for the Go module, hub.docker.com/v2 for the OCI charts and container image, and the
+  GitHub releases API for the binaries — cross-checked against the project's own install
+  documentation at https://gateway.envoyproxy.io/docs/install/.
+description: >-
+  Envoy Gateway distributes software you run, not client libraries you call. There is no
+  first-party REST client SDK in any language registry, because there is no REST API to
+  wrap: consumers talk to Envoy Gateway through the Kubernetes API server using ordinary
+  Kubernetes clients. What the project does publish first-party is the Go module carrying
+  the CRD types and the two gRPC extension contracts, the Helm charts, the controller
+  container image, and the egctl and envoy-gateway binaries.
+notes:
+  - >-
+    Nothing here is stale. Every first-party artifact was published on 2026-08-28 as part
+    of the v1.9.1 release, ten days before this pass.
+  - >-
+    The npm registry carries several packages matching "envoy-gateway"
+    (@kubernetes-models/envoy-gateway, @soft-stech/envoy-gateway, @saptak/egmcp-server).
+    All are third-party — they belong to tommy351/kubernetes-models-ts and saptak/eg-mcp-server
+    respectively — and are recorded as official:false so they are never credited to the project.
+packages:
+  - name: github.com/envoyproxy/gateway
+    registry: go
+    official: true
+    language: Go
+    version: v1.9.1
+    published: '2026-08-28'
+    url: https://pkg.go.dev/github.com/envoyproxy/gateway
+    metadataUrl: https://proxy.golang.org/github.com/envoyproxy/gateway/@latest
+    purpose: >-
+      The project source module. Integrators import api/v1alpha1 for the typed CRD structs
+      and proto/extension for the generated gRPC extension-server stubs.
+    note: >-
+      proxy.golang.org resolved v1.9.1 at refs/tags/v1.9.1, commit
+      0260554fd4f33b787aad77a129fc0ffeb00c1f29, timestamped 2026-08-28T07:58:18Z. There is
+      no separate github.com/envoyproxy/gateway/api module — the proxy returns "no matching
+      versions" for it, so the API types ship inside the root module.
+  - name: envoyproxy/gateway-helm
+    registry: oci
+    official: true
+    version: v1.9.1
+    published: '2026-08-28'
+    url: oci://docker.io/envoyproxy/gateway-helm
+    metadataUrl: https://hub.docker.com/v2/repositories/envoyproxy/gateway-helm/tags
+    install: helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.9.1 -n envoy-gateway-system --create-namespace
+    purpose: The primary installation path — control plane workload plus, by default, the CRDs.
+    note: >-
+      Docker Hub last_updated for tag v1.9.1 is 2026-08-28T11:32:45Z. A floating
+      v0.0.0-latest tag is also published (last updated 2026-09-06) and tracks main;
+      it is explicitly a dev channel, not a release.
+  - name: envoyproxy/gateway-crds-helm
+    registry: oci
+    official: true
+    version: v1.9.1
+    published: '2026-08-28'
+    url: oci://docker.io/envoyproxy/gateway-crds-helm
+    metadataUrl: https://hub.docker.com/v2/repositories/envoyproxy/gateway-crds-helm/tags
+    install: helm template eg oci://docker.io/envoyproxy/gateway-crds-helm --version v1.9.1 --set crds.gatewayAPI.enabled=true --set crds.envoyGateway.enabled=true | kubectl apply --server-side -f -
+    purpose: >-
+      The CRDs alone, for operators who manage custom resource definitions separately from
+      the workload chart (the documented GitOps path, since Helm does not upgrade CRDs in /crds).
+  - name: envoyproxy/gateway
+    registry: oci
+    official: true
+    version: v1.9.1
+    published: '2026-08-28'
+    url: https://hub.docker.com/r/envoyproxy/gateway
+    metadataUrl: https://hub.docker.com/v2/repositories/envoyproxy/gateway/tags
+    purpose: The Envoy Gateway control plane container image.
+    note: Docker Hub last_updated for tag v1.9.1 is 2026-08-28T11:31:21Z.
+  - name: egctl
+    registry: github-release
+    official: true
+    version: v1.9.1
+    published: '2026-08-28'
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.9.1
+    metadataUrl: https://api.github.com/repos/envoyproxy/gateway/releases/tags/v1.9.1
+    purpose: The first-party CLI. See cli/envoy-gateway-cli.yml for its command surface.
+    install:
+      - brew install egctl
+      - curl -fsSL https://gateway.envoyproxy.io/get-egctl.sh | VERSION=v1.9.1 bash
+    artifacts:
+      - egctl_v1.9.1_darwin_amd64.tar.gz
+      - egctl_v1.9.1_darwin_arm64.tar.gz
+      - egctl_v1.9.1_linux_amd64.tar.gz
+      - egctl_v1.9.1_linux_arm64.tar.gz
+      - egctl_v1.9.1_windows_amd64.zip
+    note: >-
+      The Homebrew formula is named `egctl`; the project documents `brew install egctl`
+      but does not publish its own tap, so the formula lives in homebrew-core and its
+      currency is not under the project's control.
+  - name: envoy-gateway
+    registry: github-release
+    official: true
+    version: v1.9.1
+    published: '2026-08-28'
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.9.1
+    purpose: >-
+      The control plane binary, for running Envoy Gateway standalone outside Kubernetes.
+    artifacts:
+      - envoy-gateway_v1.9.1_darwin_amd64.tar.gz
+      - envoy-gateway_v1.9.1_darwin_arm64.tar.gz
+      - envoy-gateway_v1.9.1_linux_amd64.tar.gz
+      - envoy-gateway_v1.9.1_linux_arm64.tar.gz
+  - name: '@kubernetes-models/envoy-gateway'
+    registry: npm
+    official: false
+    language: TypeScript
+    version: 2.0.0
+    published: null
+    url: https://www.npmjs.com/package/@kubernetes-models/envoy-gateway
+    purpose: Community-generated TypeScript models for the Envoy Gateway CRDs.
+    note: >-
+      Third-party. Repository is tommy351/kubernetes-models-ts, not envoyproxy/gateway.
+      published is null because the registry search result carries no publish date and the
+      package is not the project's to warrant; recorded for completeness only.
+  - name: '@saptak/egmcp-server'
+    registry: npm
+    official: false
+    version: 0.3.1
+    published: null
+    url: https://www.npmjs.com/package/@saptak/egmcp-server
+    purpose: A community MCP server for Envoy Gateway.
+    note: >-
+      Third-party (repository saptak/eg-mcp-server). Explicitly NOT the project's MCP
+      surface — see mcp/envoy-gateway-mcp.yml. published is null; the search endpoint
+      returned no date and no registry metadata call was made for a package we do not credit.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

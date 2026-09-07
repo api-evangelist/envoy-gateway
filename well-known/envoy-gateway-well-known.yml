@@ -1,0 +1,100 @@
+specification: API Commons Well-Known Index
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: probed
+source: >-
+  Live unauthenticated GET of each /.well-known/ path against every host this record
+  knows — the documentation host, the parent project site, and the registrable domain.
+description: >-
+  A record of an absence. Envoy Gateway serves no /.well-known/ documents on any host it
+  controls. Every path below was fetched and every one missed. No WellKnown or SecurityTxt
+  pointer is wired into apis.yml as a result: the pointer would assert a surface the
+  project does not publish. This is a genuine gap the project could close — the
+  vulnerability disclosure policy it already maintains in SECURITY.md is exactly what a
+  /.well-known/security.txt on gateway.envoyproxy.io would carry.
+notes:
+  - >-
+    gateway.envoyproxy.io and www.envoyproxy.io are Hugo sites on Netlify; both answer
+    404 with an HTML body, not a 200 SPA shell, so these are true misses rather than
+    catch-all false positives.
+  - >-
+    The apex envoyproxy.io answers 301 to www.envoyproxy.io for every path; following the
+    redirect lands on the same 404s recorded for www.
+hosts:
+  - host: gateway.envoyproxy.io
+    role: documentation and project site
+    documents:
+      - path: /.well-known/security.txt
+        status: 404
+        file: null
+      - path: /.well-known/openid-configuration
+        status: 404
+        file: null
+      - path: /.well-known/oauth-authorization-server
+        status: 404
+        file: null
+      - path: /.well-known/api-catalog
+        status: 404
+        file: null
+      - path: /.well-known/ai-plugin.json
+        status: 404
+        file: null
+      - path: /.well-known/agent-card.json
+        status: 404
+        file: null
+      - path: /.well-known/agent.json
+        status: 404
+        file: null
+  - host: www.envoyproxy.io
+    role: parent Envoy Proxy project site
+    documents:
+      - path: /.well-known/security.txt
+        status: 404
+        file: null
+      - path: /.well-known/openid-configuration
+        status: 404
+        file: null
+      - path: /.well-known/oauth-authorization-server
+        status: 404
+        file: null
+      - path: /.well-known/api-catalog
+        status: 404
+        file: null
+      - path: /.well-known/ai-plugin.json
+        status: 404
+        file: null
+      - path: /.well-known/agent-card.json
+        status: 404
+        file: null
+      - path: /.well-known/agent.json
+        status: 404
+        file: null
+  - host: envoyproxy.io
+    role: registrable domain (redirects to www)
+    documents:
+      - path: /.well-known/security.txt
+        status: 301
+        file: null
+      - path: /.well-known/openid-configuration
+        status: 301
+        file: null
+      - path: /.well-known/oauth-authorization-server
+        status: 301
+        file: null
+      - path: /.well-known/api-catalog
+        status: 301
+        file: null
+      - path: /.well-known/ai-plugin.json
+        status: 301
+        file: null
+      - path: /.well-known/agent-card.json
+        status: 301
+        file: null
+      - path: /.well-known/agent.json
+        status: 301
+        file: null
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

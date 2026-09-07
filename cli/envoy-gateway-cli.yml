@@ -1,0 +1,112 @@
+specification: API Commons CLI
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://gateway.envoyproxy.io/docs/tasks/operations/egctl/ and
+  https://gateway.envoyproxy.io/docs/install/install-egctl/ (both HTTP 200, fetched
+  2026-09-07), with binaries confirmed on the v1.9.1 GitHub release.
+description: >-
+  egctl is Envoy Gateway's first-party CLI. Most of its surface is still under the
+  `x`/`experimental` namespace, which the project is upfront about. The command worth
+  knowing is `egctl x translate`: it turns Gateway API manifests into the Envoy xDS or
+  Envoy Gateway IR they would produce, entirely offline, with no cluster involved. That
+  makes the whole configuration surface inspectable before deployment.
+name: egctl
+version: v1.9.1
+published: '2026-08-28'
+binary: egctl
+package: packages/envoy-gateway-packages.yml
+docs: https://gateway.envoyproxy.io/docs/tasks/operations/egctl/
+install:
+  - method: homebrew
+    command: brew install egctl
+    note: >-
+      Documented by the project; the formula is in homebrew-core rather than a project tap,
+      so its currency is not under the maintainers' control.
+  - method: script
+    command: curl -fsSL https://gateway.envoyproxy.io/get-egctl.sh | VERSION=v1.9.1 bash
+    note: Omit VERSION to take the latest release.
+  - method: binary
+    command: tar -zxvf egctl_v1.9.1_linux_amd64.tar.gz && mv bin/linux/amd64/egctl /usr/local/bin/egctl
+    url: https://github.com/envoyproxy/gateway/releases/tag/v1.9.1
+    platforms: [darwin/amd64, darwin/arm64, linux/amd64, linux/arm64, windows/amd64]
+stability: >-
+  `egctl config` is stable. Everything else documented today sits under `egctl x`
+  (`experimental`) and may change between minor releases.
+commands:
+  - group: config
+    stability: stable
+    description: View and validate Envoy Proxy and Envoy RateLimit configuration.
+    subcommands:
+      - name: config envoy-proxy <type>
+        description: >-
+          Retrieve xDS configuration from the running proxies — route, listener, cluster,
+          endpoint, bootstrap, secret or all.
+      - name: config envoy-gateway <type>
+        description: >-
+          Read Envoy Gateway's own in-memory resources through its admin API, for
+          debugging what the control plane believes the world looks like.
+  - group: x status
+    stability: experimental
+    description: >-
+      Summarise the status conditions across resources so a misconfiguration is visible
+      without reading every object.
+    subcommands:
+      - name: x status <resource-type>
+        description: Show status with full conditions.
+      - name: x status <resource-type> --quiet
+        description: Show only the latest condition.
+      - name: x status <resource-type> --verbose
+        description: Show detailed status.
+    resourceTypes: >-
+      xRoute (HTTPRoute, GRPCRoute, TLSRoute, TCPRoute, UDPRoute), xPolicy
+      (BackendTLSPolicy, BackendTrafficPolicy, ClientTrafficPolicy, EnvoyPatchPolicy,
+      SecurityPolicy), GatewayClass, Gateway, and `all`.
+  - group: x translate
+    stability: experimental
+    description: >-
+      Convert between Gateway API manifests, Envoy Gateway's internal representation, and
+      Envoy xDS — offline, without a cluster.
+    subcommands:
+      - name: x translate --from gateway-api --to xds|ir|gateway-api
+        description: Translate a set of input resources into the chosen output form.
+      - name: x translate --type <config-type>
+        description: Retrieve one specific output type rather than everything.
+      - name: x translate --add-missing-resources
+        description: Substitute dummy resources for unresolved dependencies so a partial set still translates.
+    note: >-
+      This is the dry-run capability recorded in conventions/envoy-gateway-conventions.yml.
+  - group: x install
+    stability: experimental
+    description: Install Envoy Gateway with flexible CRD handling.
+    subcommands:
+      - name: x install
+        description: Install workload and CRDs.
+      - name: x install --skip-crds
+        description: Install only the workload resources.
+      - name: x install --only-crds
+        description: Install only the CRDs.
+      - name: x install --name <name> --namespace <namespace>
+        description: Multi-tenant installation under a distinct name and namespace.
+  - group: x uninstall
+    stability: experimental
+    description: Remove an Envoy Gateway installation.
+    subcommands:
+      - name: x uninstall
+        description: Remove the workload, leaving CRDs and custom resources intact.
+      - name: x uninstall --with-crds
+        description: >-
+          Also remove the CRDs — which cascades to every custom resource of those kinds.
+          See the reversibility block in conventions/envoy-gateway-conventions.yml.
+  - group: x dashboard
+    stability: experimental
+    description: Port-forward and open the Envoy admin dashboard in a browser.
+    subcommands:
+      - name: x dashboard envoy-proxy -n <namespace> <pod-name>
+        description: Open the admin dashboard for a specific proxy pod.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

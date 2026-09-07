@@ -4,10 +4,12 @@ schema: https://raw.githubusercontent.com/api-evangelist/interface-research/main
 provider: Envoy Gateway
 providerId: envoy-gateway
 created: '2026-05-04'
-# Provenance stamped 2026-08-11: this artifact was written by the API Evangelist
-# bulk sweep dated 2026-05-04, not harvested from the provider. See roadmap#35.
-method: generated
-modified: '2026-05-04'
+modified: '2026-09-07'
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://gateway.envoyproxy.io/docs/tasks/traffic/global-rate-limit/ and the
+  BackendTrafficPolicy spec.rateLimit schema in json-schema/envoy-gateway-crds.yaml.
 tags:
   - API Gateway
   - CNCF
@@ -15,78 +17,79 @@ tags:
   - Kubernetes
   - Open Source
   - Rate Limiting
-  - Quotas
-  - Throttling
-description: Machine-readable rate limit definitions for the Envoy Gateway API surface. Captures per-tier
-  quotas, burst behavior, response signaling, and recovery semantics. Defaults are scaffold values to
-  be replaced with published provider limits.
-headers:
-  limit: X-RateLimit-Limit
-  remaining: X-RateLimit-Remaining
-  reset: X-RateLimit-Reset
-  retryAfter: Retry-After
-  policy: RateLimit-Policy
-responseCodes:
-  throttled: 429
-  quotaExceeded: 429
-  serviceUnavailable: 503
-limits:
-  - tier: free
-    name: Free Tier Default
-    scope: api-key
-    metric: requests_per_minute
-    limit: 10
-    burst: 20
-    timeFrame: minute
-    applies:
-      - Envoy Gateway
-  - tier: free
-    name: Free Tier Monthly Quota
-    scope: api-key
-    metric: requests_per_month
-    limit: 1000
-    timeFrame: month
-    applies:
-      - Envoy Gateway
-  - tier: professional
-    name: Professional Tier Default
-    scope: api-key
-    metric: requests_per_minute
-    limit: 100
-    burst: 200
-    timeFrame: minute
-    applies:
-      - Envoy Gateway
-  - tier: professional
-    name: Professional Tier Monthly Quota
-    scope: api-key
-    metric: requests_per_month
-    limit: 100000
-    timeFrame: month
-    applies:
-      - Envoy Gateway
-  - tier: enterprise
-    name: Enterprise Negotiated Limit
-    scope: contract
-    metric: requests_per_minute
-    limit: 1000
-    burst: 5000
-    timeFrame: minute
-    applies:
-      - Envoy Gateway
-policies:
-  - name: Backoff Strategy
-    description: Clients should implement exponential backoff with jitter, honoring the Retry-After header
-      when present.
-  - name: Burst Handling
-    description: Short bursts above the steady-state limit are tolerated up to the documented burst ceiling
-      before throttling engages.
-  - name: Quota Reset
-    description: Monthly quotas reset at the start of each calendar month in UTC. Per-minute and per-second
-      windows reset on a sliding-window basis.
-  - name: Fair Use
-    description: Even on uncapped enterprise tiers, sustained usage that materially impacts shared infrastructure
-      may be subject to fair-use throttling.
+description: >-
+  Envoy Gateway imposes no rate limits on anyone. It is self-hosted software with no
+  hosted API, so there is no quota to enforce and no key to enforce it against. What it
+  does is the inverse: it is a rate LIMITER that an operator configures to protect their
+  own backends. Both facts are recorded below, because a reader who sees only the first
+  would conclude this project has nothing to do with rate limiting, and a reader who sees
+  only the second would think the numbers apply to them.
+limit_count: 0
+providerImposedLimits:
+  exist: false
+  reason: >-
+    No hosted API, no accounts, no API keys. The only quota an Envoy Gateway user
+    encounters is their own Kubernetes API server's, and Docker Hub's anonymous pull limits
+    on the container image.
+  headers: null
+  responseCodes: null
+limits: []
+providedCapability:
+  description: >-
+    Rate limiting Envoy Gateway configures on the operator's behalf, on the traffic
+    traversing the gateway. These are capabilities of the product, not limits on its use.
+  crd: BackendTrafficPolicy
+  field: spec.rateLimit
+  docs: https://gateway.envoyproxy.io/docs/tasks/traffic/global-rate-limit/
+  modes:
+    - name: local
+      description: >-
+        Per-Envoy-instance token bucket. No external dependency; each proxy replica counts
+        independently, so the effective limit scales with replica count.
+    - name: global
+      description: >-
+        Cluster-wide counting via the Envoy Ratelimit service backed by Redis. The
+        deployment is managed by Envoy Gateway itself and pinned per release — see the
+        rateLimit column in lifecycle/envoy-gateway-lifecycle.yml.
+  descriptors: >-
+    Rules match on request headers (exact, distinct, regex), client CIDR, and JWT claims,
+    with shared and per-descriptor counters.
+  units: [Second, Minute, Hour, Day, Month, Year, Week]
+  unitsNote: Week was added in v1.9.0.
+  responseHeaders:
+    - name: x-ratelimit-limit
+      note: Emitted by the data plane when X-RateLimit headers are enabled.
+    - name: x-ratelimit-remaining
+    - name: x-ratelimit-reset
+    - name: retry-after
+      note: On the 429 response, when configured.
+  headerControl: >-
+    BackendTrafficPolicy exposes an X-RateLimit headers option. v1.9.1 corrected the
+    XRateLimitHeadersOptionDisabled constant to the value "Off" to match the CRD enum;
+    "Disabled" was never a valid enum value and would have been rejected at admission.
+  exhaustionStatus: 429
+  recentChanges:
+    - >-
+      v1.9.0 added `fromMetadata` to a global rate limit `limit`, so the limit value can be
+      sourced from per-request dynamic metadata (for example set by an upstream ext_proc)
+      with a static fallback.
+    - >-
+      v1.9.0 added `rateLimit.backend.redis.urlRef` to read the Redis URL from a Kubernetes
+      Secret, for GitOps flows where Redis is provisioned externally.
+    - >-
+      v1.9.0 moved shared-only global rate limit rules into typedPerFilterConfig instead of
+      route.rateLimits in generated xDS — a breaking change for EnvoyPatchPolicies and
+      extension servers targeting the old location.
+    - >-
+      v1.9.1 switched the global rate limit cluster to EDS against the in-cluster
+      envoy-ratelimit Service instead of static DNS, so it tracks replica scaling.
+notes:
+  - >-
+    CORRECTION. Until this pass, this file declared free/professional/enterprise tiers with
+    invented numbers — 10 req/min and 1,000 req/month free, 100 req/min and 100,000/month
+    professional, 1,000 req/min enterprise — plus X-RateLimit response headers as though
+    Envoy Gateway returned them to its own callers. None of it was measured. It came from
+    the 2026-05-04 bulk scaffold sweep (roadmap#35). Replaced with the measured result.
 maintainers:
   - FN: Kin Lane
     email: kin@apievangelist.com

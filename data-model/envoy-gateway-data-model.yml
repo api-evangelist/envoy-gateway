@@ -1,0 +1,183 @@
+specification: API Commons Data Model
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: derived
+source: >-
+  Derived from json-schema/envoy-gateway-crds.yaml (the v1.9.1 CRD bundle) by reading each
+  resource's spec properties and reference fields, cross-checked against the v1.9.0 and
+  v1.9.1 release notes for the target kinds each policy accepts.
+description: >-
+  The Envoy Gateway object graph has an unusual shape for this catalogue. There are no
+  owned child records and no foreign keys in a payload; instead every Envoy Gateway
+  resource is a POLICY that attaches sideways onto an object owned by a different API
+  group — the upstream Gateway API — through a targetRefs field. Understanding that one
+  relationship explains the whole model.
+rootEntities:
+  external:
+    - kind: GatewayClass
+      group: gateway.networking.k8s.io
+      note: >-
+        Cluster-scoped. Its parametersRef points at an EnvoyProxy, which is how
+        infrastructure configuration reaches every Gateway of that class.
+    - kind: Gateway
+      group: gateway.networking.k8s.io
+      note: The listener set. Owned by the Gateway API, implemented by Envoy Gateway.
+    - kind: ListenerSet
+      group: gateway.networking.k8s.io
+      note: A named group of listeners; became a policy target across four CRDs in v1.9.0.
+    - kind: HTTPRoute / GRPCRoute / TCPRoute / UDPRoute / TLSRoute
+      group: gateway.networking.k8s.io
+      note: Routing rules. Envoy Gateway attaches policies to these and to their named rules.
+  note: >-
+    These are NOT Envoy Gateway's resources. They are published by Kubernetes SIG-Network
+    and are listed here only because the Envoy Gateway model is meaningless without them.
+    See conformance/envoy-gateway-conformance.yml for the conformance evidence.
+entities:
+  - name: EnvoyProxy
+    scope: Namespaced
+    role: infrastructure
+    description: >-
+      How the managed data plane is built and run — Kubernetes workload shape, bootstrap,
+      telemetry, shutdown, filter ordering. Attached by reference, not by targetRef.
+    keyFields: [provider, bootstrap, telemetry, shutdown, filterOrder, mergeGateways, mergeBackends, logging, concurrency]
+  - name: Backend
+    scope: Namespaced
+    role: destination
+    description: >-
+      A backend that is not a Kubernetes Service — an FQDN, a fixed IP, a Unix socket, or a
+      DynamicResolver that resolves from the request. Referenced from a route's backendRefs.
+    keyFields: [type, endpoints, appProtocols, tls, fallback]
+  - name: BackendTrafficPolicy
+    scope: Namespaced
+    role: policy
+    description: Behaviour of traffic from the proxy toward a backend.
+    keyFields: [loadBalancer, rateLimit, circuitBreaker, retry, healthCheck, timeout, compression, faultInjection, responseOverride, admissionControl, telemetry]
+  - name: ClientTrafficPolicy
+    scope: Namespaced
+    role: policy
+    description: Behaviour of traffic from the downstream client into a listener.
+    keyFields: [tls, http1, http2, http3, clientIPDetection, headers, connection, timeout, enableProxyProtocol]
+  - name: SecurityPolicy
+    scope: Namespaced
+    role: policy
+    description: Authentication and authorization at the gateway.
+    keyFields: [jwt, oidc, apiKeyAuth, basicAuth, extAuth, authorization, cors, csrf]
+  - name: EnvoyExtensionPolicy
+    scope: Namespaced
+    role: policy
+    description: Custom code in the request path.
+    keyFields: [wasm, extProc, lua, dynamicModule]
+  - name: EnvoyPatchPolicy
+    scope: Namespaced
+    role: policy
+    description: RFC 6902 JSON Patches applied directly to generated xDS. The escape hatch.
+    keyFields: [type, jsonPatches, priority]
+  - name: HTTPRouteFilter
+    scope: Namespaced
+    role: filter
+    description: >-
+      An implementation-specific route filter. Unlike the policies, it does not target
+      anything — a route rule references IT, via an extensionRef filter.
+    keyFields: [urlRewrite, directResponse, credentialInjection, matches]
+relationships:
+  - from: GatewayClass
+    to: EnvoyProxy
+    type: has_one
+    via: spec.parametersRef
+    direction: gateway-api -> envoy-gateway
+    note: The canonical way infrastructure config reaches a whole class of Gateways.
+  - from: Gateway
+    to: EnvoyProxy
+    type: has_one
+    via: spec.infrastructure.parametersRef
+    direction: gateway-api -> envoy-gateway
+    note: Per-Gateway override of the class-level EnvoyProxy.
+  - from: BackendTrafficPolicy
+    to: Gateway | ListenerSet | HTTPRoute | GRPCRoute | TCPRoute | UDPRoute | TLSRoute
+    type: attaches_to
+    via: spec.targetRefs[] (group, kind, name, sectionName)
+    cardinality: many-to-many
+  - from: ClientTrafficPolicy
+    to: Gateway | ListenerSet
+    type: attaches_to
+    via: spec.targetRefs[] (group, kind, name, sectionName)
+    note: >-
+      Listener-scoped by nature; ListenerSet became an accepted target kind in v1.9.0.
+  - from: SecurityPolicy
+    to: Gateway | ListenerSet | HTTPRoute | GRPCRoute | TCPRoute
+    type: attaches_to
+    via: spec.targetRefs[] (group, kind, name, sectionName)
+  - from: EnvoyExtensionPolicy
+    to: Gateway | ListenerSet | HTTPRoute | GRPCRoute
+    type: attaches_to
+    via: spec.targetRefs[] (group, kind, name, sectionName)
+  - from: EnvoyPatchPolicy
+    to: Gateway | GatewayClass
+    type: attaches_to
+    via: spec.targetRef (group, kind, name)
+    note: >-
+      The only policy with a singular targetRef and no sectionName — a patch applies to a
+      whole translated xDS output, not to a section of a resource.
+  - from: HTTPRoute | GRPCRoute
+    to: HTTPRouteFilter
+    type: references
+    via: rules[].filters[].extensionRef
+    direction: gateway-api -> envoy-gateway
+    note: >-
+      Inverted relative to the policies: the route names the filter. GRPCRoute gained this
+      in v1.9.0.
+  - from: HTTPRoute | GRPCRoute | TLSRoute
+    to: Backend
+    type: references
+    via: rules[].backendRefs[]
+    direction: gateway-api -> envoy-gateway
+    note: TLSRoute may reference a DynamicResolver Backend as of v1.9.0.
+  - from: policy (any)
+    to: Secret | ConfigMap
+    type: references
+    via: various *Ref / *Refs fields
+    note: >-
+      JWKS CA certs, OIDC client secrets, API keys, TLS material and the global rate limit
+      Redis URL all resolve to core Kubernetes Secrets or ConfigMaps.
+  - from: policy (any)
+    to: ReferenceGrant
+    type: gated_by
+    via: gateway.networking.k8s.io ReferenceGrant
+    note: >-
+      Cross-namespace references require a ReferenceGrant in the target namespace.
+      Extension server policies gained cross-namespace targeting via ReferenceGrant in v1.9.0.
+identifiers:
+  scheme: kubernetes
+  note: >-
+    There are no opaque prefixed IDs anywhere in this model. An object is identified by the
+    tuple (apiVersion, kind, namespace, name), and a reference carries (group, kind, name)
+    plus an implicit or explicit namespace. metadata.uid is a server-assigned UUID and
+    metadata.resourceVersion is the concurrency token.
+attachmentSemantics:
+  targetKindsAreNotSchemaConstrained: >-
+    A real modelling caveat found by reading the schemas: targetRefs[].kind is an
+    unconstrained string with no enum. The set of kinds each policy accepts is enforced at
+    reconcile time and reported through status.ancestors[].conditions, and it is documented
+    only in the release notes and the API reference. A manifest naming an unsupported kind
+    is admitted by the API server and then rejected asynchronously, so an agent must read
+    status rather than trust a successful write.
+  sectionName: >-
+    Narrows attachment to a Gateway listener, an HTTPRoute rule, a GRPCRoute rule, or a
+    Service port. If the named section does not exist the policy fails to attach and records
+    a ResolvedRefs condition.
+  mergeType: >-
+    BackendTrafficPolicy, SecurityPolicy and EnvoyExtensionPolicy carry a mergeType field
+    controlling how a route-level policy combines with a parent Gateway or ListenerSet
+    policy. v1.9.0 restricted it to xRoute targets and rejects it on Gateway and
+    ListenerSet targets.
+  targetSelectors: >-
+    Three policies also accept label selectors instead of names, so one policy can attach to
+    a set of routes matched by label.
+render: null
+renderNote: >-
+    No subway/ diagram exists in this repository. The graph above is the derivation.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

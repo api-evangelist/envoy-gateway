@@ -1,0 +1,98 @@
+specification: API Commons Authentication
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://gateway.envoyproxy.io/docs/tasks/security/ and the SecurityPolicy and
+  ClientTrafficPolicy schemas in json-schema/envoy-gateway-crds.yaml.
+  derive-authentication.py was run first and returned no profile, correctly: it reads
+  OpenAPI securitySchemes and this provider publishes no OpenAPI.
+description: >-
+  Two different things are easy to confuse here, and conflating them would misdescribe the
+  product. Envoy Gateway has no credential of its own — you authenticate to the Kubernetes
+  API server and RBAC decides whether you may write its resources. What it PROVIDES is a
+  rich authentication surface for the traffic passing through the gateway, configured
+  through SecurityPolicy. The first is this artifact's `provider` section; the second is
+  its `provided` section, and only the first describes how a consumer gets in.
+provider:
+  schemes:
+    - type: kubernetes
+      name: Kubernetes API server authentication
+      description: >-
+        Client certificates, bearer tokens, OIDC, or a cloud provider's IAM authenticator —
+        whatever the cluster is configured for. Envoy Gateway inherits it entirely.
+      authorization: >-
+        Kubernetes RBAC on the gateway.envoyproxy.io API group. A Role or ClusterRole
+        granting verbs on backends, backendtrafficpolicies, clienttrafficpolicies,
+        envoyextensionpolicies, envoypatchpolicies, envoyproxies, httproutefilters and
+        securitypolicies is what actually gates access.
+      note: Nothing is issued by Envoy Gateway. There is no API key, token or console login.
+    - type: mutualTLS
+      name: xDS control plane to data plane
+      description: >-
+        The control plane serves xDS to the managed Envoy proxies over mTLS, with
+        certificates provisioned by the certgen Job or by cert-manager. Operators do not
+        call this channel; it is internal.
+      note: >-
+        v1.9.0 fixed an authentication bypass on this channel in GatewayNamespaceMode —
+        see security/envoy-gateway-vulnerability-disclosure.yml.
+  oauth2: false
+  apiKey: false
+  scopes: null
+  scopesNote: >-
+    No OAuth scopes artifact is written. derive-oauth-scopes.py found no oauth2
+    securityScheme because there is no spec, and the real authorization model is RBAC verbs
+    on Kubernetes resources, which is not a scope list.
+provided:
+  description: >-
+    Authentication methods Envoy Gateway can enforce on traffic traversing the gateway,
+    all configured on the SecurityPolicy CRD. Listed because for this product they are the
+    feature a buyer is shopping for.
+  crd: SecurityPolicy
+  docs: https://gateway.envoyproxy.io/docs/api/extension_types/#securitypolicy
+  methods:
+    - field: spec.jwt
+      name: JWT validation
+      detail: >-
+        Per-provider issuers, audiences, remote or local JWKS, claim-to-header extraction,
+        failedRefetchDuration and (v1.9.0) failOpen.
+    - field: spec.oidc
+      name: OpenID Connect
+      detail: >-
+        Authorization-code flow with PKCE, discovery, refresh, logout, and forwardIDToken
+        (v1.9.0). v1.9.1 removed HTTP as an acceptable issuer scheme and moved session
+        cookies to AES-256-GCM.
+    - field: spec.apiKeyAuth
+      name: API key authentication
+      detail: >-
+        Keys extracted from headers, query parameters or cookies. v1.9.0 tightened
+        extractFrom validation to require at least one entry naming exactly one source.
+    - field: spec.basicAuth
+      name: HTTP Basic authentication
+      detail: Credentials from a Kubernetes Secret containing an htpasswd file.
+    - field: spec.extAuth
+      name: External authorization
+      detail: Delegates the decision to an HTTP or gRPC external authorization service.
+    - field: spec.authorization
+      name: Authorization rules
+      detail: >-
+        Allow/deny rules on client CIDR, JWT claims, headers and (v1.9.0) CEL expressions
+        and path matches.
+    - field: ClientTrafficPolicy spec.tls.clientValidation
+      name: Mutual TLS for downstream clients
+      detail: >-
+        CA certificate refs, optional insecure fallback, and (v1.9.0)
+        allowExpiredCertificate.
+    - field: spec.csrf
+      name: CSRF protection
+      detail: >-
+        Added v1.9.0. Validates the Origin header of mutating requests against the
+        destination and additionalOrigins, with gradual rollout via shadowFraction.
+    - field: spec.cors
+      name: CORS
+      detail: Cross-origin request handling at the gateway.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

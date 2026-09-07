@@ -1,0 +1,201 @@
+specification: API Commons Lifecycle
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://gateway.envoyproxy.io/news/releases/matrix/ (the project's published
+  Compatibility Matrix, read 2026-09-07, HTTP 200) plus
+  https://gateway.envoyproxy.io/community/releasing/ and the dated release-note fragments
+  under https://github.com/envoyproxy/gateway/tree/main/release-notes.
+description: >-
+  Envoy Gateway publishes something most providers in this catalogue do not: a dated
+  end-of-life for every minor version, in a table, on its own site. An operator can read
+  the exact day their release stops receiving patches before they adopt it. Versioning is
+  semantic, the API group is still v1alpha1, and deprecations are announced in a dedicated
+  section of each release's notes.
+versioning:
+  scheme: semver
+  currentVersion: v1.9.1
+  currentVersionReleased: '2026-08-28'
+  apiGroup: gateway.envoyproxy.io
+  apiVersion: v1alpha1
+  apiStability: alpha
+  note: >-
+    The release train is at v1.9 but the CRD API group is still v1alpha1 and has been
+    since v0.2. Kubernetes convention treats v1alpha1 as removable without a deprecation
+    period; in practice Envoy Gateway announces CRD-shape changes as breaking changes in
+    release notes and has not removed the version. The gap between a 1.x product version
+    and an alpha API version is real and worth an integrator's attention.
+  minorCadence: >-
+    Roughly quarterly. v1.6 2026-02, v1.7 2026-05 (approx), v1.8 2026-05-13, v1.9 2026-08-15.
+  patchPolicy: >-
+    Security fixes are merged into every supported, non-EOL release branch as patch
+    releases. Two branches were patched the same day on 2026-08-28 (v1.9.1 and v1.8.4).
+deprecation:
+  policy: >-
+    Each release's notes carry dedicated "breaking changes" and "deprecations" sections.
+    Fields are deprecated with a named replacement and removed in a later release rather
+    than at once — v1.9.0 disabled Lua EnvoyExtensionPolicies by default, added an
+    `enableLua` field, and deprecated `disableLua` with the note that it "will be removed
+    in a future release".
+  headers: null
+  headersNote: >-
+    RFC 8594 Sunset and Deprecation response headers are not applicable. Envoy Gateway is
+    a control plane an operator installs, not a hosted HTTP API that could emit lifecycle
+    headers on a response. Deprecation is communicated through release notes and the
+    compatibility matrix.
+  announcementChannels:
+    - https://gateway.envoyproxy.io/news/releases/
+    - https://github.com/envoyproxy/gateway/releases
+    - https://groups.google.com/g/envoy-gateway-announce
+  examples:
+    - item: BackendTrafficPolicy `disableLua`
+      status: deprecated
+      replacement: extensionApis.enableLua
+      announcedIn: v1.9.0
+      note: Deprecated with an explicit statement that it will be removed in a future release.
+    - item: HTTPRoute `sessionPersistence.idleTimeout`
+      status: removed upstream
+      announcedIn: v1.9.0
+      note: >-
+        Removed from the Gateway API v1.6 HTTPRoute spec. Envoy Gateway stopped validating
+        it; manifests setting it must drop the field before the CRD upgrade.
+support:
+  model: >-
+    Community open source. Support is the CNCF project's mailing list, Slack and GitHub
+    issues; there is no commercial SLA from the project itself, and no status page,
+    because there is no hosted service to have uptime.
+  sla: none
+  statusPage: null
+  statusPageNote: >-
+    Envoy Gateway runs in the operator's own cluster. There is nothing for the project to
+    report availability on, so no StatusPage pointer is wired.
+  channels:
+    - https://github.com/envoyproxy/gateway/issues
+    - https://www.envoyproxy.io/slack
+    - https://groups.google.com/g/envoy-gateway-announce
+releaseMatrix:
+  source: https://gateway.envoyproxy.io/news/releases/matrix/
+  fetched: '2026-09-07'
+  columns: [envoyGateway, envoyProxy, rateLimit, gatewayAPI, kubernetes, endOfLife]
+  note: >-
+    Bold entries in the published table indicate the Envoy Proxy and Gateway API versions
+    actually compiled into each release. Reproduced here verbatim.
+  releases:
+    - version: latest
+      envoyProxy: dev-latest
+      rateLimit: master
+      gatewayAPI: v1.6.1
+      kubernetes: [v1.34, v1.35, v1.36, v1.37]
+      endOfLife: null
+      status: development
+    - version: v1.9
+      envoyProxy: distroless-v1.39.0
+      rateLimit: 17b1956c
+      gatewayAPI: v1.6.1
+      kubernetes: [v1.33, v1.34, v1.35, v1.36]
+      endOfLife: '2027-02-14'
+      status: supported
+    - version: v1.8
+      envoyProxy: distroless-v1.38.0
+      rateLimit: fe26676d
+      gatewayAPI: v1.5.1
+      kubernetes: [v1.32, v1.33, v1.34, v1.35]
+      endOfLife: '2026-11-08'
+      status: supported
+    - version: v1.7
+      envoyProxy: distroless-v1.37.0
+      rateLimit: 3fb70258
+      gatewayAPI: v1.4.1
+      kubernetes: [v1.32, v1.33, v1.34, v1.35]
+      endOfLife: '2026-08-05'
+      status: end-of-life
+    - version: v1.6
+      envoyProxy: distroless-v1.36.4
+      rateLimit: 3fb70258
+      gatewayAPI: v1.4.0
+      kubernetes: [v1.30, v1.31, v1.32, v1.33]
+      endOfLife: '2026-05-13'
+      status: end-of-life
+    - version: v1.5
+      envoyProxy: distroless-v1.35.0
+      rateLimit: a90e0e5d
+      gatewayAPI: v1.3.0
+      kubernetes: [v1.30, v1.31, v1.32, v1.33]
+      endOfLife: '2026-02-13'
+      status: end-of-life
+    - version: v1.4
+      envoyProxy: distroless-v1.34.1
+      rateLimit: 3e085e5b
+      gatewayAPI: v1.3.0
+      kubernetes: [v1.30, v1.31, v1.32, v1.33]
+      endOfLife: '2025-11-13'
+      status: end-of-life
+    - version: v1.3
+      envoyProxy: distroless-v1.33.0
+      rateLimit: 60d8e81b
+      gatewayAPI: v1.2.1
+      kubernetes: [v1.29, v1.30, v1.31, v1.32]
+      endOfLife: '2025-07-30'
+      status: end-of-life
+    - version: v1.2
+      envoyProxy: distroless-v1.32.1
+      rateLimit: 28b1629a
+      gatewayAPI: v1.2.0
+      kubernetes: [v1.28, v1.29, v1.30, v1.31]
+      endOfLife: '2025-05-06'
+      status: end-of-life
+    - version: v1.1
+      envoyProxy: distroless-v1.31.0
+      rateLimit: 91484c59
+      gatewayAPI: v1.1.0
+      kubernetes: [v1.27, v1.28, v1.29, v1.30]
+      endOfLife: '2025-01-22'
+      status: end-of-life
+    - version: v1.0
+      envoyProxy: distroless-v1.29.2
+      rateLimit: 19f2079f
+      gatewayAPI: v1.0.0
+      kubernetes: [v1.26, v1.27, v1.28, v1.29]
+      endOfLife: '2024-09-13'
+      status: end-of-life
+    - version: v0.6
+      envoyProxy: distroless-v1.28-latest
+      rateLimit: b9796237
+      gatewayAPI: v1.0.0
+      kubernetes: [v1.26, v1.27, v1.28]
+      endOfLife: '2024-05-02'
+      status: end-of-life
+    - version: v0.5
+      envoyProxy: v1.27-latest
+      rateLimit: e059638d
+      gatewayAPI: v0.7.1
+      kubernetes: [v1.25, v1.26, v1.27]
+      endOfLife: '2024-01-02'
+      status: end-of-life
+    - version: v0.4
+      envoyProxy: v1.26-latest
+      rateLimit: 542a6047
+      gatewayAPI: v0.6.2
+      kubernetes: [v1.25, v1.26, v1.27]
+      endOfLife: '2023-10-24'
+      status: end-of-life
+    - version: v0.3
+      envoyProxy: v1.25-latest
+      rateLimit: f28024e3
+      gatewayAPI: v0.6.1
+      kubernetes: [v1.24, v1.25, v1.26]
+      endOfLife: '2023-08-09'
+      status: end-of-life
+    - version: v0.2
+      envoyProxy: v1.23-latest
+      rateLimit: null
+      gatewayAPI: v0.5.1
+      kubernetes: [v1.24]
+      endOfLife: '2023-04-20'
+      status: end-of-life
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

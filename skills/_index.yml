@@ -1,0 +1,38 @@
+specification: Agent Skills Index
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: searched
+source: >-
+  https://github.com/envoyproxy/gateway/tree/main/.agents/skills — Envoy Gateway ships
+  its own packaged Agent Skill in the repository under .agents/skills/. Saved verbatim;
+  nothing here was authored on the provider's behalf.
+description: >-
+  Agent Skills published by Envoy Gateway itself. The project keeps one skill, aimed at
+  contributors rather than at API consumers: it encodes the maintainers' pull-request
+  review checklist so an agent reviewing a change applies the project's own API,
+  implementation, test-coverage and release-note conventions.
+skills:
+  - name: review-envoy-gateway-pr
+    file: skills/envoy-gateway-pr-review.md
+    version: '0.1'
+    description: >-
+      Review an Envoy Gateway pull request for essential API, implementation, status, and
+      test coverage requirements.
+    audience: contributor
+    method: searched
+    source: https://github.com/envoyproxy/gateway/blob/main/.agents/skills/pr-review/SKILL.md
+    x-evidence:
+      fetched: '2026-09-07'
+      url: https://raw.githubusercontent.com/envoyproxy/gateway/main/.agents/skills/pr-review/SKILL.md
+      http_status: 200
+notes:
+  - >-
+    No consumer-facing skills were generated for this provider. The pipeline generates
+    skills only when there is an OpenAPI whose operationIds can ground them; Envoy
+    Gateway's surface is Kubernetes CRDs and two gRPC extension hooks, so a generated
+    "call this operation" skill would have no operationIds to cite and would be invention.
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

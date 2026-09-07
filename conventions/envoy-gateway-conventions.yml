@@ -1,0 +1,184 @@
+specification: API Commons Conventions
+specificationVersion: '0.1'
+provider: Envoy Gateway
+providerId: envoy-gateway
+generated: '2026-09-07'
+method: derived
+source: >-
+  Derived from json-schema/envoy-gateway-crds.yaml (the v1.9.1 CRD bundle),
+  grpc/envoy-gateway-grpc.yml, and the project's own PR-review skill
+  (skills/envoy-gateway-pr-review.md), which states the conventions the maintainers
+  enforce. Corroborated against https://gateway.envoyproxy.io/docs/api/extension_types/.
+description: >-
+  Envoy Gateway's cross-cutting semantics are inherited wholesale from Kubernetes rather
+  than invented. That is the single most important thing an integrator needs to know:
+  authentication, versioning, concurrency control, error reporting and replay safety all
+  behave the way they do for any other custom resource, and the project's own review
+  checklist explicitly requires new API surface to follow the Kubernetes API conventions
+  and the Gateway API's status-condition conventions.
+surface:
+  kind: kubernetes-crd + grpc
+  restApi: false
+  note: >-
+    There is no HTTP API to call. Configuration is submitted to the Kubernetes API server
+    as custom resources; the two gRPC contracts are inbound hooks Envoy Gateway calls out
+    to, not endpoints a consumer calls in.
+authentication:
+  style: kubernetes
+  mechanism: >-
+    Whatever the cluster's API server enforces — client certificates, bearer tokens,
+    OIDC, or a cloud provider's IAM plugin — followed by RBAC authorization on the
+    gateway.envoyproxy.io API group. Envoy Gateway defines no credential of its own.
+  controlPlaneToDataPlane: >-
+    The xDS channel from the control plane to the managed Envoy proxies is mTLS, with
+    certificates provisioned by the certgen job or by cert-manager.
+  reference: authentication/envoy-gateway-authentication.yml
+versioning:
+  style: kubernetes-api-group
+  current: gateway.envoyproxy.io/v1alpha1
+  note: >-
+    Version is carried in the resource's apiVersion field, not in a URL path or header.
+    Only v1alpha1 is served and stored. Product releases version independently (v1.9.1)
+    — see lifecycle/envoy-gateway-lifecycle.yml.
+errors:
+  envelope: kubernetes-status-conditions
+  shape: >-
+    status.conditions[] and, for policy resources, status.ancestors[].conditions[] —
+    each with type, status, reason, message, observedGeneration and lastTransitionTime,
+    following Gateway API GEP-1364.
+  admissionErrors: >-
+    Structural schema violations and CEL validation rules are rejected synchronously by
+    the API server at admission, before the resource is ever stored. This is genuinely
+    better than a runtime 4xx: the caller learns the request is invalid at write time.
+  reconcileErrors: >-
+    Errors discovered during translation surface asynchronously as conditions. The
+    project's PR-review skill makes surfacing user-visible errors in status a required
+    review item for any change under internal/gatewayapi.
+  rfc9457: false
+  reference: conformance/envoy-gateway-conformance.yml
+pagination:
+  style: kubernetes-chunking
+  params: [limit, continue]
+  responseFields: [metadata.continue, metadata.remainingItemCount]
+  note: >-
+    Provided by the Kubernetes API server for LIST requests against any resource,
+    including these CRDs. Envoy Gateway neither implements nor overrides it.
+fieldSelection:
+  note: >-
+    Kubernetes label selectors and field selectors apply. Server-side apply with field
+    managers gives per-field ownership, which matters here because several policy CRDs are
+    routinely edited by more than one controller.
+metadata:
+  note: >-
+    Standard Kubernetes labels and annotations. EnvoyProxy.spec.provider.kubernetes
+    additionally propagates operator-supplied labels and annotations onto the generated
+    proxy Deployment, Service and Pod.
+tracing:
+  requestId: >-
+    The data plane generates and propagates x-request-id on proxied traffic, and honours
+    W3C traceparent when tracing is enabled.
+  controlPlane: >-
+    v1.9.1 added per-phase tracing spans to the Gateway API and xDS translators, each
+    recording the size of the input it processed, so a slow translation attributes to a
+    named phase rather than one opaque span.
+rateLimitSignaling:
+  note: >-
+    Envoy Gateway emits no rate-limit headers of its own — it configures the data plane to
+    emit them on the operator's behalf. See rate-limits/envoy-gateway-rate-limits.yml.
+idempotency:
+  coverage: full
+  mechanism: kubernetes-declarative-apply
+  header: null
+  scope: all mutating operations on gateway.envoyproxy.io resources
+  description: >-
+    Every write is a declarative statement of desired state, not a command. Re-applying an
+    identical manifest converges to the same result and produces no additional effect, so
+    a retrying client — or an agent that cannot tell whether its previous call landed —
+    cannot double-apply a change. Server-side apply makes this explicit: the caller
+    declares a field manager and owns named fields, and re-sending the same object is a
+    no-op.
+  replayProtection: >-
+    metadata.resourceVersion provides optimistic concurrency control. A client that reads,
+    modifies and writes back with the resourceVersion it read gets a 409 Conflict if
+    anything changed underneath it, rather than silently clobbering.
+  retention: >-
+    Not time-bounded. Convergence is a property of the reconciliation loop, not of a
+    server-side key cache with an expiry, so there is no window after which a replay stops
+    being safe.
+  caveat: >-
+    The guarantee is convergence, not effect-suppression. Re-applying a manifest is safe;
+    it does not undo side effects that already propagated to the data plane between the two
+    applies.
+  verdict: >-
+    full, because the mechanism covers the entire mutating surface rather than named
+    operations. It is a structural property of the Kubernetes resource model, which is why
+    it needs no header and admits no exceptions.
+dryRun:
+  supported: true
+  mechanism: >-
+    kubectl apply --dry-run=server sends the object through admission, structural schema
+    validation and CEL rules and reports what would happen without persisting it. egctl x
+    translate goes further and renders the resulting Envoy xDS or Envoy Gateway IR from a
+    set of Gateway API manifests entirely offline, with --add-missing-resources to stub
+    unresolved dependencies.
+  grade: verified
+  evidence: https://gateway.envoyproxy.io/docs/tasks/operations/egctl/
+  note: >-
+    The offline translate path is unusually strong. An agent can see the exact proxy
+    configuration a change would produce before touching a cluster.
+reversibility:
+  grade: documented
+  applicability: applicable
+  description: >-
+    Every configuration change is reversible by reverting the manifest, because state is
+    declarative and the controller reconciles to whatever is currently declared. What the
+    project does NOT publish is a stated window for any of these reversals, so the grade is
+    `documented` rather than `verified`.
+  writeSurfaces:
+    - surface: any gateway.envoyproxy.io custom resource
+      reversal: re-apply the previous manifest, or kubectl delete the resource
+      operationId: null
+      window: null
+      windowStated: false
+      note: >-
+        Reverting removes the policy from the next xDS push. Connections already
+        established under the old configuration are not retroactively changed; Envoy
+        drains them according to the EnvoyProxy shutdown configuration.
+    - surface: helm release (gateway-helm chart)
+      reversal: helm rollback
+      operationId: null
+      window: null
+      windowStated: false
+      note: >-
+        The install docs warn that Helm does not manage CRDs in /crds on upgrade, so a
+        chart rollback does not roll CRD schemas back. A rollback across a release that
+        changed CRD shape needs the CRDs handled separately.
+    - surface: installation
+      reversal: egctl x uninstall (--with-crds to also remove definitions)
+      operationId: null
+      window: null
+      windowStated: false
+      note: >-
+        Deleting the CRDs deletes every custom resource of those kinds with them. That is
+        the one irreversible action in this surface and the flag is opt-in for that reason.
+  irreversible:
+    - >-
+      Deleting a CRD cascades to every resource of that kind. Nothing restores them but a
+      backup of the manifests.
+    - >-
+      The v1.9.1 OIDC cookie encryption change invalidated every existing session on
+      upgrade; sessions cannot be recovered by rolling back, users simply re-authenticate.
+  caveat: >-
+    No stated window appears in any Envoy Gateway document for any reversal, and none has
+    been invented here. Where a window matters — how long a drained connection lingers —
+    it is operator-configured through EnvoyProxy shutdown settings rather than fixed by the
+    project.
+crossReferences:
+  errors: conformance/envoy-gateway-conformance.yml
+  lifecycle: lifecycle/envoy-gateway-lifecycle.yml
+  authentication: authentication/envoy-gateway-authentication.yml
+  rateLimits: rate-limits/envoy-gateway-rate-limits.yml
+  schemas: json-schema/envoy-gateway-json-schema.yml
+maintainers:
+  - FN: Kin Lane
+    email: kin@apievangelist.com

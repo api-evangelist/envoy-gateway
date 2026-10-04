@@ -14,17 +14,20 @@ description: >-
   repository.
 type: Index
 deliveryModel:
-  model: open-source
-  open_source: true
-  commercial: false
+  model: saas
+  license_evidence:
+    not_product:
+    - envoyproxy/gateway
+  open_source: unknown
+  commercial: true
   callable_host: false
-  label: Open-source software the operator installs and runs
-  confidence: high
+  label: Hosted service · you call their endpoint
+  confidence: low
   source:
-  - https://github.com/envoyproxy/gateway/blob/main/LICENSE
-  - https://gateway.envoyproxy.io/docs/install/install-helm/
-  generated: '2026-09-07'
-  method: searched
+  - pricing
+  - repository-not-product
+  generated: '2026-09-25'
+  method: derived
 accessModel:
   pricing: free
   onboarding: self-service
@@ -38,12 +41,16 @@ accessModel:
   generated: '2026-09-07'
   method: searched
 image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/envoy-gateway.png
+x-docs-platform: readthedocs
+x-docs-platform-confidence: medium
+x-docs-platform-checked: 2026-10-03
+x-docs-hosting: github-pages
 tags:
   - API Gateway
   - CNCF
   - Envoy
   - Kubernetes
-  - Open-Source
+  - Open Source
   - Gateway API
   - Ingress
   - Service Mesh
@@ -60,6 +67,7 @@ tags_raw:
   - Service Mesh
   - Cloud Native
   - gRPC
+  - Open-Source
 url: >-
   https://raw.githubusercontent.com/api-evangelist/envoy-gateway/refs/heads/main/apis.yml
 created: '2026-03-27'

@@ -23,6 +23,9 @@ artifacts:
   conventions/envoy-gateway-conventions.yml:
     method: derived
     evidence: declared in the artifact
+  data-license/envoy-gateway-data-license.yml:
+    method: harvested
+    evidence: declared in the artifact
   data-model/envoy-gateway-data-model.yml:
     method: derived
     evidence: declared in the artifact
@@ -59,7 +62,7 @@ artifacts:
   kin/checks-2026-10-23T222754.yml:
     method: generated
     evidence: Kin Score snapshot written by score.rb
-  kin/checks-2026-11-02T082323.yml:
+  kin/checks-2026-11-06T143934.yml:
     method: generated
     evidence: Kin Score snapshot written by score.rb
   kin/score-2026-09-23T000603.yml:
@@ -125,6 +128,9 @@ artifacts:
   kin/score-2026-11-02T082323.yml:
     method: generated
     evidence: Kin Score snapshot written by score.rb
+  kin/score-2026-11-06T143934.yml:
+    method: generated
+    evidence: Kin Score snapshot written by score.rb
   lifecycle/envoy-gateway-lifecycle.yml:
     method: searched
     evidence: declared in the artifact
@@ -155,6 +161,9 @@ artifacts:
   skills/envoy-gateway-pr-review.md:
     method: unknown
     evidence: no authorship recorded
+  terms/envoy-gateway-terms-of-service.yml:
+    method: harvested
+    evidence: declared in the artifact
   well-known/envoy-gateway-well-known.yml:
     method: unknown
     evidence: no authorship recorded
